@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Create a new user with a 15G HOME file system, no TSO access, 
+# Create a new user with a 15G HOME file system, no TSO access,
 # and no password, specifying ssh public key to use from stdin
 #
 #set -x
@@ -36,7 +36,7 @@ if [ $? -gt 0 ]; then
 	tsocmd "setropts raclist(facility) refresh" 2>/dev/null
 fi
 
-tsocmd "listgrp zotgrp" >/dev/null 2>/dev/null 
+tsocmd "listgrp zotgrp" >/dev/null 2>/dev/null
 if [ $? -gt 0 ]; then
 	addout=`tsocmd "addgroup zotgrp supgroup(sys1) owner(sys1) omvs(autogid)" 2>/dev/null`
 	rc=$?
@@ -44,8 +44,8 @@ if [ $? -gt 0 ]; then
 		echo "${addout}" >&2
 		exit $rc
 	fi
-fi	
-	
+fi
+
 addout=`tsocmd "adduser ${mvsid} dfltgrp(zotgrp)" 2>/dev/null`
 rc=$?
 if [ $rc -gt 0 ]; then
@@ -57,6 +57,19 @@ altout=`tsocmd "altuser ${mvsid} omvs(home(/u/${unixid}) program(/bin/sh) autoui
 rc=$?
 if [ $rc -gt 0 ]; then
 	echo "${altout}" >&2
+	exit $rc
+fi
+
+permout=`tsocmd "permit bpx.smf.119.94 class(facility) id(${mvsid}) access(read)"`
+rc=$?
+if [ $rc -gt 0 ]; then
+	echo "${permout}" >&2
+	exit $rc
+fi
+setrout=`tsocmd "setropts raclist(facility) refresh"`
+rc=$?
+if [ $rc -gt 0 ]; then
+	echo "${setrout}" >&2
 	exit $rc
 fi
 
@@ -121,5 +134,14 @@ if [ $rc -gt 0 ]; then
 	echo "Unable to change group of /${unixid} (personal work file system)" >&2
 	exit $rc
 fi
-	
+
+. ./volfunc >/dev/null
+mntout=`automntzfs 01 /${unixid}"`
+rc=$?
+if [ $rc -gt 0 ]; then
+	echo "Unable to add /${unixid} to automount on IPL" >&2
+	exit $rc
+fi
+
 exit 0
+
