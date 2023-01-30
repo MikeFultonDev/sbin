@@ -19,7 +19,7 @@ fi
 # in one 'edit' session
 #
 for e in $list; do
-  line=$(grep -n $e "${output}" | awk -F':' ' { print $1; }' )
+  line=$(grep -n "'$e'" "${output}" | awk -F':' ' { print $1; }' )
   if [ "${line}x" != "x" ]; then
     if ! sed -e "${line}d" "${output}" >"${tmp}" || ! cp "${tmp}" "${output}" || ! rm "${tmp}"; then
       echo "deletion of line ${line} (exported symbol ${e}) failed" >&2
