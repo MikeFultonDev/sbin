@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+# Create a new functional user, no TSO access,
+# and no password, and no ability to log in
+#
+#set -x
+if [ $# -lt 2 ]; then
+	echo "Syntax: crtfnuser <userid> <group>" 
+	echo "where:" 
+	echo "   <userid> is a 7 character or less username" 
+	echo "   <group> is the default group the user should be in" >&2
+	exit 4
+fi
+id=$1
+grp=$2
+unixid=$(echo $1 | tr '[:upper:]' '[:lower:]')
+mvsid=$(echo $1 | tr '[:lower:]' '[:upper:]')
+dfltgrp=$(echo $2 | tr '[:upper:]' '[:lower:]')
+
+tsocmd listuser "${mvsid}" >/dev/null 2>/dev/null
+if [ $? -eq 0 ]; then
+	echo "User ID ${mvsid} already exists. Either delete it or manually update it" >&2
+	exit 4
+fi
+
+tsocmd "rlist facility bpx.next.user" >/dev/null 2>/dev/null
+if [ $? -gt 0 ]; then
+	rdefout=`tsocmd "rdefine facility bpx.next.user appldata('1000/1000')" 2>/dev/null`
+	rc=$?
+	if [ $rc -gt 0 ]; then
+		echo "${rdefout}" >&2
+		exit $rc
+	fi
+	tsocmd "setropts raclist(facility) refresh" 2>/dev/null
+fi
+
+tsocmd "listgrp ${dfltgrp}" >/dev/null 2>/dev/null
+if [ $? -gt 0 ]; then
+	addout=`tsocmd "addgroup ${dfltgrp} supgroup(sys1) owner(sys1) omvs(autogid)" 2>/dev/null`
+	rc=$?
+	if [ $rc -gt 0 ]; then
+		echo "${addout}" >&2
+		exit $rc
+	fi
+fi
+
+addout=`tsocmd "adduser ${mvsid} dfltgrp(${dfltgrp})" 2>/dev/null`
+rc=$?
+if [ $rc -gt 0 ]; then
+	echo "${addout}" >&2
+	exit $rc
+fi
+
+altout=`tsocmd "altuser ${mvsid} omvs(home(/u/${unixid}) program(/bin/sh) autouid) nopassword nophrase"`
+rc=$?
+if [ $rc -gt 0 ]; then
+	echo "${altout}" >&2
+	exit $rc
+fi

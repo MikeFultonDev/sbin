@@ -1,0 +1,79 @@
+#!/bin/sh
+#
+# Create a new zfs and mount it. This is NOT made permanent. 
+#
+
+Syntax()
+{
+	echo "Syntax: crtzfs <qualifier> <mount point> <size> <volser>" 
+	echo "where:" 
+	echo "   <qualifier> is an 8 character qualifier to allocate the backing LFS under, i.e. ZFS.<qualifier>"
+	echo "   <mount point> is the directory to mount the file system at (must already exist)"
+	echo "   <size> is the number of GB to allocate the file system with"
+	echo "   <volser> is the volume to allocate the backing storage against"
+}
+
+Number()
+{
+	var=$1
+	case $var in
+	   (*[!0-9]*|'') return 1;;
+	   (*)           return 0;;
+	esac
+}
+
+if [ $# -lt 4 ]; then
+	Syntax
+	exit 0
+fi
+
+qual=$1
+dir=$2
+size=$3
+volser=$4
+
+if ! $( zoaversion >/dev/null 2>&1 ) ; then
+	echo "ZOAU tools required" >&2
+	Syntax
+	exit 4
+fi
+
+linear_ds=$(echo "ZFS.${qual}" | tr '[:lower:]' '[:upper:]')
+volser=$(echo "${volser}" | tr '[:lower:]' '[:upper:]')
+
+if ! Number $size ; then
+	echo "<size> must be a number. ${size} specified" >&2
+	Syntax
+	exit 4
+fi
+
+if vls "${linear_ds}" >/dev/null 2>&1 || dls "${linear_ds}" >/dev/null 2>&1 ; then
+	echo "Dataset ${linear_ds} already exists. No action performed." >&2
+	Syntax
+	exit 4
+fi
+
+if ! [ -d "${dir}" ]; then
+	echo "Directory ${dir} does not exist. No action performed." >&2
+	Syntax
+	exit 4
+fi
+if [ $(df | awk ' { if ($1 == "${dir}") { exit 1 } }' ) ]; then
+	echo "Directory already mounted. No action performed." >&2
+	Syntax
+	exit 4
+fi
+
+zfsadm define -aggregate "${linear_ds}" -dataclas dceattr -storageclas scnosms -megabytes "${size}"000 -volumes "${volser}"
+rc=$?
+if [ $rc -gt 0 ]; then
+	echo "Unable to allocate ${size}G file system ${linear_ds} from volume ${volser}" >&2
+	exit $rc
+fi
+
+mount -tzfs -f "${linear_ds}" "/${dir}"
+rc=$?
+if [ $rc -gt 0 ]; then
+	echo "Unable to mount ${dir} from ${linear_ds}" >&2
+	exit $rc
+fi

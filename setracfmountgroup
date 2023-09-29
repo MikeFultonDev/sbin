@@ -1,0 +1,25 @@
+#!/bin/sh
+if [ $# -lt 1 ]; then
+	echo 'specify the id to set up' >&2
+	exit 4
+fi
+id=$1
+
+if ! $( zoaversion >/dev/null 2>&1 ) ; then
+	echo "ZOAU tools required" >&2
+	Syntax
+	exit 4
+fi
+
+tsocmd "rdelete UNIXPRIV SUPERUSER.FILESYS.USERMOUNT" >/dev/null 2>&1
+
+tsocmd "rdefine UNIXPRIV SUPERUSER.FILESYS.USERMOUNT"
+tsocmd "permit SUPERUSER.FILESYS.USERMOUNT ACCESS(UPDATE) CLASS(UNIXPRIV) ID(${id})"
+
+#
+# Only 2 file systems that need to be mounted - ZFS.LOCAL@A and ZFS.LOCAL@B
+#
+opercmd "setomvs MAXUSERMOUNTUSER=2"
+opercmd "setomvs MAXUSERMOUNTSYS=2"
+
+tsocmd 'setropts RACLIST(UNIXPRIV) REFRESH' 
