@@ -1,0 +1,84 @@
+#!/bin/sh
+
+ismounted()
+{
+  zfs="$1"
+  dfinfo=$(/bin/df "${zfs}" 2>/dev/null | tail -1)
+  if [ $? -gt 0 ]; then
+    return 1
+  fi
+  zfspath=$(/bin/echo "${dfinfo}" | /bin/awk '{ print $1; }')
+  if [ $? -gt 0 ]; then
+    return 1
+  fi
+  if [ "x${zfspath}" = "x${zfs}" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+dshlq="ZFS"
+zfsroot="/zot"
+
+#
+# Get the directories to perform mounts into a well-defined state
+# where the empty directory exists for each
+# Check nothing already exists
+# Create a set of mounts that still need to be done
+#
+mounts="LOCAL@A:locala LOCAL@B:localb"
+tomount=""
+for mount in $mounts; do
+  zfsrel=${mount##*:}
+  dsrel=${mount%%:*}
+  if [ -d "${zfsroot}/${zfsrel}" ]; then
+    if [ "$(ls -A ${zfsroot}/${zfsrel})" ]; then
+      # all good - empty directory exists
+      tomount="${tomount} ${mount}"
+    else
+      # directory not empty - validate it is already mounted
+      if mounted "${zfsroot}/${zfsrel}" ; then
+        # all good - already mounted
+        :
+      else
+        echo "Error: Unable to mount file system ${dshlq}.${dsrel} to {zfsroot}/${zfsrel}" >&2
+        echo "Directory is not empty. No action performed" >&2
+        exit 4
+      fi
+    fi
+  else
+    if [ -e "${zfsroot}/${zfsrel}" ]; then
+        echo "Error: Unable to mount file system ${dshlq}.${dsrel} to {zfsroot}/${zfsrel}" >&2
+        echo "${zfsroot}/${zfsrel} exists and is not an empty directory. No action performed" >&2
+        exit 4
+    else
+      if [ mkdir -p "${zfsroot}/${zfsrel}" ]; then
+        echo "Error: Unable to mount file system ${dshlq}.${dsrel} to {zfsroot}/${zfsrel}" >&2
+        echo "Error: Unable to create new directory at ${zfsroot}/${zfsrel}" >&2
+        echo "No action performed" >&2
+        exit 4
+      else
+        # all good - new directory created
+        tomount="${tomount} ${mount}"
+      fi
+    fi
+  fi
+done
+
+mounted=""
+for mount in $tomounts do
+  zfsrel=${mount##*:}
+  dsrel=${mount%%:*}
+  if [ /usr/sbin/mount -s nosetuid -tzfs -f "${dshlq}.${dsrel}" "${zfsroot}/${zfsrel}") ] ; then
+    echo "Error: Unable to mount file system ${dshlq}.${dsrel} to {zfsroot}/${zfsrel}" >&2
+    if ! [ -z "${mounted}" ]; then
+      echo "Error: System is in inconsistent state. The following mount pairs were performed: ${mounted}" >&2
+      exit 4
+    fi
+    echo "Error: mount command failed." >&2
+  fi
+  mounted="${mounted} ${mount}"
+done
+
+exit 0
