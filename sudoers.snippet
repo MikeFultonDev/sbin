@@ -1,0 +1,10 @@
+##
+## User privilege specification
+##
+root ALL=(ALL:ALL) ALL
+fultonm ALL = (zfsinst) NOPASSWD: /bin/rm -rf /zopenprod/locala/zopenprod
+fultonm ALL = (zfsinst) NOPASSWD: /bin/rm -rf /zopenprod/localb/zopenprod
+fultonm ALL = (zfsinst) NOPASSWD: /bin/cp -rf /u/fultonm/zopenprod /zopenprod/locala/
+fultonm ALL = (zfsinst) NOPASSWD: /bin/cp -rf /u/fultonm/zopenprod /zopenprod/localb/
+fultonm ALL = (zfsinst) NOPASSWD: /bin/ln -fs /zopenprod/locala /zopenprod/local
+fultonm ALL = (zfsinst) NOPASSWD: /bin/ln -fs /zopenprod/localb /zopenprod/local
