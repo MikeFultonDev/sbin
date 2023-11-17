@@ -99,4 +99,18 @@ for mount in $tomount; do
   mounted="${mounted} ${mount}"
 done
 
+#
+# Set up the initial symbolic link to the 'active' file system. 
+# We will choose localb so that the first install will go to the 'inactive' file system
+# which is locala. This is arbitrary but a comes before b so it seems logical the first
+# install should be against locala.
+#
+inactive="${zfsroot}/localb"
+symlink="${zfsroot}/local"
+
+if ! ln -sf "${inactive}" "${symlink}" ; then
+  echo "Error: Unable to establish initial symbolic link: 'ln -sf ${inactive} ${symlink}'" >&2
+  exit 4
+fi
+
 exit 0
