@@ -14,9 +14,9 @@
 #    relative directory pairs of the LDS datasets to mount.
 #    Each pair is separated by a space.
 #  For example:                    
-#    dshlq=ZFS, zfsroot=/zot, mounts="LOCAL@A:locala LOCAL@B:localb"
+#    dshlq=ZFS, zfsroot=/zopenprod, mounts="LOCAL@A:locala LOCAL@B:localb"
 #    will attempt to mount ZFS.LOCAL@A and ZFS.LOCAL@B to zFS file
-#    paths of /zot/locala and /zot/localb, respectively.
+#    paths of /zopenprod/locala and /zopenprod/localb, respectively.
 
 ismounted()
 {
@@ -37,7 +37,7 @@ ismounted()
 }
 
 dshlq="ZFS"
-zfsroot="/zot"
+zfsroot="/zopenprod"
 
 #
 # Get the directories to perform mounts into a well-defined state
