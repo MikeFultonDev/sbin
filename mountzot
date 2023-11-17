@@ -1,5 +1,4 @@
 #!/bin/sh
-
 # 
 # mountzot: goes through the list of dataset/zfs pairs and
 #   does a variety of checks and mounts the file systems 
