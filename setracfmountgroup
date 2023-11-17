@@ -1,0 +1,47 @@
+#!/bin/sh
+#set -x
+if [ $# -lt 1 ]; then
+	echo 'specify the id to set up' >&2
+	exit 4
+fi
+id=$1
+
+if ! $( zoaversion >/dev/null 2>&1 ) ; then
+	echo "ZOAU tools required" >&2
+	Syntax
+	exit 4
+fi
+
+tsocmd 'rlist unixpriv SUPERUSER.FILESYS.USERMOUNT' >/dev/null 2>&1
+if [ $? -gt 0 ]; then
+	tsocmd "rdefine UNIXPRIV SUPERUSER.FILESYS.USERMOUNT"
+	if [ $? -gt 0 ]; then
+		echo "Unable to define UNIXPRIV SUPERUSER.FILESYS.USERMOUNT. No action performed" >&2
+		exit 4
+	fi
+fi
+
+tsocmd "permit SUPERUSER.FILESYS.USERMOUNT ACCESS(UPDATE) CLASS(UNIXPRIV) ID(${id})"
+
+tsocmd 'setropts RACLIST(UNIXPRIV) REFRESH' 
+
+#
+# Check if user mounts are adequate (need at least 2)
+#
+mountinfo=$(opercmd 'd omvs,o' | grep MAXUSERMOUNT)
+maxusermountsys=$(echo $mountinfo | awk '{print $3}')
+maxusermountuser=$(echo $mountinfo | awk '{print $5}')
+if [ ${maxusermountsys} -lt 2 ] || [ ${maxusermountuser} -lt 2 ]; then
+	if [ ${maxusermountsys} -lt 2 ]; then
+		opercmd "setomvs MAXUSERMOUNTSYS=2"
+	fi
+	if [ ${maxusermountuser} -lt 2 ]; then
+		opercmd "setomvs MAXUSERMOUNTUSER=2"
+	fi
+		
+	#
+	# BPXPRM01 needs to be updated to have the following entries:
+	#
+	# MAXUSERMOUNTSYS(2)
+	# MAXUSERMOUNTUSER(2)
+fi
